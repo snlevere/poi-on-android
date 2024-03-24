@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">PoiAndroid</string>
+    <string name="write_message_here">Write message here</string>
+    <string name="create_docx">Create Docx</string>
+    <string name="create_xlsx">Create Xlsx</string>
+    <string name="create_pptx">Create Pptx</string>
+    <string name="read_xlsx">Read Xlsx</string>
 </resources>

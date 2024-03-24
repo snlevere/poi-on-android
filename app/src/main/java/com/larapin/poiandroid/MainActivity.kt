@@ -2,21 +2,22 @@ package com.larapin.poiandroid
 
 import android.os.Bundle
 import android.os.Environment
+import android.support.v7.app.AppCompatActivity
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import kotlinx.android.synthetic.main.activity_main.*
-import org.apache.poi.xslf.usermodel.SlideLayout
-import org.apache.poi.xslf.usermodel.XMLSlideShow
+import com.larapin.poiandroid.databinding.ActivityMainBinding
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import org.apache.poi.xwpf.usermodel.XWPFDocument
 import java.io.File
 import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        val view = binding.root
+        setContentView(view)
         
         System.setProperty("org.apache.poi.javax.xml.stream.XMLInputFactory", "com.fasterxml.aalto.stax.InputFactoryImpl")
         System.setProperty("org.apache.poi.javax.xml.stream.XMLOutputFactory", "com.fasterxml.aalto.stax.OutputFactoryImpl")
@@ -24,36 +25,15 @@ class MainActivity : AppCompatActivity() {
 
         val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
 
-        btn_docx.setOnClickListener {
-            createDocx(path, input_text.text.toString().trim())
+        binding.btnWriteXlsx.setOnClickListener {
+            writeXlsx(path, binding.inputText.text.toString().trim())
         }
-        btn_xlsx.setOnClickListener{
-            createXlsx(path, input_text.text.toString().trim())
-        }
-        btn_pptx.setOnClickListener{
-            createPptx(path, input_text.text.toString().trim())
+        binding.btnReadXlsx.setOnClickListener{
+            readXlsx(path, binding.inputText.text.toString().trim())
         }
     }
 
-    private fun createDocx(path: File, message: String) {
-        try {
-            val document = XWPFDocument()
-
-            val outputStream = FileOutputStream(File(path,"/poi.docx"))
-
-            val paragraph = document.createParagraph()
-            val run = paragraph.createRun()
-            run.setText(message)
-
-            document.write(outputStream)
-            outputStream.close()
-            Toast.makeText(this, "poi.docx was successfully created", Toast.LENGTH_SHORT).show()
-        }catch (e: Exception){
-            e.printStackTrace()
-        }
-    }
-
-    private fun createXlsx(path: File, message: String) {
+    private fun writeXlsx(path: File, message: String) {
         try {
             val workbook = XSSFWorkbook()
 
@@ -61,8 +41,11 @@ class MainActivity : AppCompatActivity() {
 
             val sheet = workbook.createSheet("Sheet 1")
             val row = sheet.createRow(2)
-            val cell = row.createCell(1)
-            cell.setCellValue(message)
+            val fields: List<String> = message.split(",")
+            for ((index, field) in fields.withIndex()) {
+                val cell = row.createCell(index)
+                cell.setCellValue(field)
+            }
 
             workbook.write(outputStream)
             outputStream.close()
@@ -72,21 +55,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createPptx(path: File, message: String) {
+    private fun readXlsx(path: File, message: String) {
         try {
-            val slideShow = XMLSlideShow()
+            val workbook = XSSFWorkbook(File(path, "/poi.xlsx"))
 
-            val outputStream = FileOutputStream(File(path, "/poi.pptx"))
+            val sheet = workbook.getSheetAt(0)
+            val rowIterator = sheet.iterator()
+            val sb = StringBuilder()
+            while (rowIterator.hasNext()) {
+                val row = rowIterator.next()
+                val cellIterator = row.cellIterator()
+                while (cellIterator.hasNext()) {
+                    val cell = cellIterator.next()
+                    sb.append(cell.stringCellValue)
+                }
+                sb.append('\n')
+            }
 
-            val slideMaster = slideShow.slideMasters[0]
-            val titleLayout = slideMaster.getLayout(SlideLayout.TITLE)
-            val slide = slideShow.createSlide(titleLayout)
-            val title = slide.getPlaceholder(0)
-            title.text = message
-
-            slideShow.write(outputStream)
-            outputStream.close()
-            Toast.makeText(this, "poi.pptx was successfully created", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Read [$sb]", Toast.LENGTH_SHORT).show()
         }catch (e: Exception){
             e.printStackTrace()
         }
